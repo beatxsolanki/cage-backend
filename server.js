@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -23,9 +22,22 @@ app.get("/health", (req, res) => {
     });
 });
 
+app.post("/chat", (req, res) => {
+    const message = req.body.message;
+
+    if (!message) {
+        return res.status(400).json({
+            error: "Message is required"
+        });
+    }
+
+    res.json({
+        reply: `CAGE received: ${message}`
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log(`CAGE SERVER RUNNING ON PORT ${PORT}`);
 });
-
