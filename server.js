@@ -1,11 +1,26 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+const dotenv = require("dotenv");
+const { GoogleGenAI } = require("@google/genai");
+
+dotenv.config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// ===================================
+// GEMINI AI
+// ===================================
+
+const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY
+});
+
+// ===================================
+// HOME
+// ===================================
 
 app.get("/", (req, res) => {
     res.json({
@@ -15,14 +30,26 @@ app.get("/", (req, res) => {
     });
 });
 
+// ===================================
+// HEALTH
+// ===================================
+
 app.get("/health", (req, res) => {
     res.json({
         status: "OK",
-        server: "CAGE AI"
+        server: "CAGE AI",
+        ai: process.env.GEMINI_API_KEY
+            ? "Gemini configured"
+            : "Gemini key missing"
     });
 });
 
-app.post("/chat", (req, res) => {
+// ===================================
+// CHAT
+// ===================================
+
+app.post("/chat", async (req, res) => {
+
     const message = req.body.message;
 
     if (!message) {
@@ -31,13 +58,43 @@ app.post("/chat", (req, res) => {
         });
     }
 
-    res.json({
-        reply: `CAGE received: ${message}`
-    });
+    try {
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: message
+        });
+
+        const reply =
+            response.text ||
+            "Sorry Boss, mujhe response nahi mila.";
+
+        res.json({
+            reply: reply
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Gemini Error:",
+            error
+        );
+
+        res.status(500).json({
+            error: "Gemini request failed",
+            reply: "Sorry Boss, abhi AI se connection nahi ho pa raha."
+        });
+    }
 });
+
+// ===================================
+// SERVER
+// ===================================
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`CAGE SERVER RUNNING ON PORT ${PORT}`);
+    console.log(
+        `CAGE SERVER RUNNING ON PORT ${PORT}`
+    );
 });
